@@ -17,17 +17,22 @@ file := A_ScriptName
 name := SubStr(file, 1, InStr(file, ".", , 0) - 1)
 WINTITLE := "✨" name "✨ " VERSION
 
-
 ;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
 ;║                                              GUI                                              ║;
 ;╚═══════════════════════════════════════════════════════════════════════════════════════════════╝;
 
-xMargin := 5
-yMargin := 5
-xPos    := 5
-yPos    := 5
-Gui GUIMain:New
-Gui GUIOpt:Margin, %xMargin%, %yMargin%
+xMg := 5
+yMg := 5
+xStart := 5
+yStart := 5
+Gui GUIOpt:New, AlwaysOnTop +Resize +MinSize640x480, % WINTITLE
+;Gui GUIOpt:Color, 0XAAAADD
+Gui GUIOpt:Margin, %xMg%, %yMg%
+Gui GUIOpt:Add, Text,		x%xStart%	y%yStart%		h21	Section +0x200				, % "Profile"
+Gui GUIOpt:Add, ComboBox,	x+m			w120			  Limit
+Gui GUIOpt:Add, Button,		x+m			w60		h21					, % "Save"
+Gui GUIOpt:Add, Button,		x+m			w60		h21	 	, % "Delete"
+Gui GUIOpt:Add, Button,		x+m			w60		h21	 	, % "Reset"
 Gui GUIOpt:Show
 
 FuncLoadIni("settings.ini")
@@ -45,8 +50,8 @@ FuncLoadIni(iniFile)
       return
     }
   }
-  lel := "lelx"
-  MsgBox, lel
+  ;lel := "lelx"
+  ;MsgBox, %lel%
 }
 
 FuncMessageBox(thisMessage)
