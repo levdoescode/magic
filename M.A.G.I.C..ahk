@@ -4,7 +4,7 @@
 #Requires AutoHotkey v1.1.33+
 #SingleInstance force
 #NoEnv
-#Warn  ; Enable warnings to assist with detecting common errors.
+#Warn ; Enable warnings to assist with detecting common errors.
 SendMode Input
 SetWorkingDir %A_ScriptDir%
 FileEncoding, UTF-16
@@ -16,6 +16,26 @@ VERSION := 0.1
 file := A_ScriptName
 name := SubStr(file, 1, InStr(file, ".", , 0) - 1)
 Global WINTITLE := A_Tab "✨" name "✨ " VERSION
+Global settingsFileName := "settings.ini"
+Global separator := "	" ; Tab
+Global fileTypes := "html	css	js"
+; Settings to include in the default ini file
+Global settingsIni := "
+(
+[Settings]
+Separator=	
+FileTypes=html	css	js	cpp
+[Hotstrings]
+HS1=mg.
+HL1=M.A.G.I.C.
+HT1=global
+HS2=for.
+HL2=for(let i=0; i< ; i++){		}
+HT2=js
+HS3=.for
+HL3=for(int i=0; i< ; i++){		}
+HT3=cpp
+)"
 
 ;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
 ;║                                              GUI                                              ║;
@@ -30,23 +50,27 @@ FuncLoadGUI()
   Gui GUIOpt:New, +MaxSize640x480, % WINTITLE
   Gui GUIOpt:Color, 0XFFFFFF
   Gui GUIOpt:Margin, %xMg%, %yMg%
-  Gui GUIOpt:Add, Text,		  x%xStart%	y%yStart%		h21	Section +0x200  , % "Profile"
-  Gui GUIOpt:Add, ComboBox,	x+m			  w120            Limit
-  Gui GUIOpt:Add, Button,		x+m			  w60		      h21					        , % "Save"
-  Gui GUIOpt:Add, Button,		x+m			  w60		      h21                 , % "Delete"
-  Gui GUIOpt:Add, Button,		x+m			  w60		      h21                 , % "Reset"
+  Gui GUIOpt:Add, Text,		 x%xStart%	y%yStart%		h21	Section +0x200 , % "Profile"
+  Gui GUIOpt:Add, ComboBox,	x+m			 w120 Limit
+  Gui GUIOpt:Add, Button,		x+m			 w60		 h21					 , % "Save"
+  Gui GUIOpt:Add, Button,		x+m			 w60		 h21 , % "Delete"
+  Gui GUIOpt:Add, Button,		x+m			 w60		 h21 , % "Reset"
+  
   Gui GUIOpt:Show
+  funcUpdateGUI()
 }
 
-Global settingsIni := "
-(
-[Global_Settings]
-HotShort1=mg.
-HotLong1=M.A.G.I.C.
-)"
+; Read Ini sections and create the GUI elements
+funcUpdateGUI()
+{
+  ; Read sections
+  IniRead, sectionList, %settingsFileName%, Hotstrings
+  FuncMessageBox(sectionList)
+}
 
-FuncLoadGUI()
-FuncLoadIni("settings.ini")
+;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
+;║                                              INI                                              ║;
+;╚═══════════════════════════════════════════════════════════════════════════════════════════════╝;
 
 ; Create ini file or load it if present
 FuncLoadIni(iniFile)
@@ -55,14 +79,20 @@ FuncLoadIni(iniFile)
   {
     ; if config file doesn't exist, create it
     FileAppend, % settingsIni, %iniFile%
-    if (ErrorLevel = 1)
+    if (ErrorLevel == 1)
     {
       FuncMessageBox("Error")
       return
     }
   }
-  ;lel := "lelx"
-  ;MsgBox, %lel%
+  ; Ini file exists  
+  ; Try to load settings
+  IniRead, varFileTypes, %settingsFileName%, Settings, FileTypes
+  if(varFileTypes = "ERROR")
+  {
+    FuncMessageBox("Can't find Settings")
+    FuncMessageBox(A_WorkingDir)
+  }
 }
 
 FuncMessageBox(thisMessage)
@@ -70,5 +100,6 @@ FuncMessageBox(thisMessage)
   MsgBox, % thisMessage
 }
 
-
+FuncLoadGUI()
+FuncLoadIni(settingsFileName)
 
