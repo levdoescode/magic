@@ -25,16 +25,19 @@ Global settingsIni := "
 [Settings]
 Separator=	
 FileTypes=html	css	js	cpp
-[Hotstrings]
-HS1=mg.
-HL1=M.A.G.I.C.
-HT1=global
-HS2=for.
-HL2=for(let i=0; i< ; i++){		}
-HT2=js
-HS3=.for
-HL3=for(int i=0; i< ; i++){		}
-HT3=cpp
+[HK1]
+Short=mg.
+Long=M.A.G.I.C.
+Types=html	css	js	cpp
+[HK2]
+Short=for.
+Long=for(let i=0; i< ; i++){		}
+Omit=true
+Types=js
+[HK3]
+Short=.for
+Long=for(int i=0; i< ; i++){		}
+Types=cpp
 )"
 
 ;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
@@ -57,29 +60,60 @@ FuncLoadGUI()
   Gui GUIOpt:Add, Button,		x+m			 w60		 h21 , % "Reset"
   
   Gui GUIOpt:Show
-  funcUpdateGUI()
+  FuncUpdateGUI()
 }
 
 ; Read Ini sections and create the GUI elements
-funcUpdateGUI()
+FuncUpdateGUI()
 {
-  ; Read sections
-  IniRead, sectionList, %settingsFileName%, Hotstrings
+  HSPreffix := "::"
+  HSPreffixO := ":O:"
+  ; Read the list sections
+  IniRead, sectionList, %settingsFileName%
   FuncMessageBox(sectionList)
+  Loop, Parse, sectionList, `n
+  {
+    If(A_Loopfield == "Settings")
+      Continue
+    If(A_LoopField != "HK2")
+      Continue
+    ; Read the values for the current section
+    IniRead, HSShort, %settingsFileName%, %A_LoopField%, Short
+    IniRead, HSLong , %settingsFileName%, %A_LoopField%, Long
+    IniRead, HSOmit, %settingsFileName%, %A_LoopField%, Omit
+    IniRead, HSTypes, %settingsFileName%, %A_LoopField%, Types
+    ; Confirm all values are valid
+    if(HSShort != "ERROR" && HSLong != "ERROR" && HSTypes != "ERROR")
+    {
+      ; Replace all tabs for line feeds in the snippet
+      HSLong := StrReplace(HSLong, A_Tab, "`n")
+      ; Implement the hotstrings and create the GUI elements
+      if(HSOmit == "true")
+        Hotstring(HSPreffixO HSShort, HSLong, "On")
+      else if(HSOmit == "false")
+        Hotstring(HSPreffix HSShort, HSLong, "On")
+      ; Read all file types valid for the current hotstring
+      Loop, Parse, HSTypes, %A_Tab%
+      {
+        ;FuncMessageBox(A_LoopField)
+      }
+    }
+    Break
+  }
 }
 
 ;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
 ;║                                              INI                                              ║;
 ;╚═══════════════════════════════════════════════════════════════════════════════════════════════╝;
 
-; Create ini file or load it if present
-FuncLoadIni(iniFile)
+; Create ini file or load it If present
+FuncLoadIni(inIfile)
 {
-  if (!FileExist(iniFile))
+  If (!FileExist(inIfile))
   {
-    ; if config file doesn't exist, create it
-    FileAppend, % settingsIni, %iniFile%
-    if (ErrorLevel == 1)
+    ; If config file doesn't exist, create it
+    FileAppend, % settingsIni, %inIfile%
+    If (ErrorLevel == 1)
     {
       FuncMessageBox("Error")
       return
@@ -88,7 +122,7 @@ FuncLoadIni(iniFile)
   ; Ini file exists  
   ; Try to load settings
   IniRead, varFileTypes, %settingsFileName%, Settings, FileTypes
-  if(varFileTypes = "ERROR")
+  If(varFileTypes = "ERROR")
   {
     FuncMessageBox("Can't find Settings")
     FuncMessageBox(A_WorkingDir)
@@ -100,6 +134,5 @@ FuncMessageBox(thisMessage)
   MsgBox, % thisMessage
 }
 
-FuncLoadGUI()
 FuncLoadIni(settingsFileName)
-
+FuncLoadGUI()
