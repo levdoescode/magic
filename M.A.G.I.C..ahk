@@ -25,73 +25,92 @@ Global settingsIni := "
 [Settings]
 Separator=	
 FileTypes=html	css	js	cpp
-[HK1]
+[HS1]
 Short=mg.
 Long=M.A.G.I.C.
+Omit=true
 Types=html	css	js	cpp
-[HK2]
+[HS2]
 Short=for.
 Long=for(let i=0; i< ; i++){		}
 Omit=true
 Types=js
-[HK3]
+[HS3]
 Short=.for
 Long=for(int i=0; i< ; i++){		}
+Omit=true
 Types=cpp
 )"
 
 ;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
-;║                                              GUI                                              ║;
+;║                                           START CODE                                          ║;
 ;╚═══════════════════════════════════════════════════════════════════════════════════════════════╝;
 
-FuncLoadGUI()
-{
-  xMg := 5
-  yMg := 5
-  xStart := 5
-  yStart := 5
-  Gui GUIOpt:New, +MaxSize640x480, % WINTITLE
+FuncLoadIni(settingsFileName)
+Gosub, LablStartGUI
+
+;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
+;║                                              GUI                                              ║;
+;╚═══════════════════════════════════════════════════════════════════════════════════════════════╝;
+; Can't be a function because GUI elements need a global variable and they can't be created
+; dynamically e.g. %A_Loop%Short inside a function, only in labels, which LablStartGUI calls
+LablStartGUI:
+  xMg := 5 ; margin in pixels
+  yMg := 5 ; margin in pixels
+  xStart := 5 ; starting x position
+  yStart := 5 ; starting y position
+  Gui GUIOpt:New, , % WINTITLE
   Gui GUIOpt:Color, 0XFFFFFF
   Gui GUIOpt:Margin, %xMg%, %yMg%
-  Gui GUIOpt:Add, Text,		 x%xStart%	y%yStart%		h21	Section +0x200 , % "Profile"
-  Gui GUIOpt:Add, ComboBox,	x+m			 w120 Limit
-  Gui GUIOpt:Add, Button,		x+m			 w60		 h21					 , % "Save"
-  Gui GUIOpt:Add, Button,		x+m			 w60		 h21 , % "Delete"
-  Gui GUIOpt:Add, Button,		x+m			 w60		 h21 , % "Reset"
-  
+  Gui GUIOpt:Add, Text,		 x%xStart%	y%yStart%		h21	Section +0x200 , % "Hotstring list"
+  ;Gui GUIOpt:Add, ComboBox,	y+m			 w120 Limit
+  ;Gui GUIOpt:Add, Button,		x+m			 w60		 h21 , % "Save"
+  ;Gui GUIOpt:Add, Button,		x+m			 w60		 h21 , % "Delete"
+  ;Gui GUIOpt:Add, Button,		x+m			 w60		 h21 , % "Reset"
+  Gosub, FuncLoadHotGUI
+  GuiControl, Focus, HS2Short
   Gui GUIOpt:Show
-  FuncUpdateGUI()
-}
+return
 
 ; Read Ini sections and create the GUI elements
-FuncUpdateGUI()
-{
+FuncLoadHotGUI:
+
   HSPreffix := "::"
   HSPreffixO := ":O:"
   ; Read the list sections
   IniRead, sectionList, %settingsFileName%
-  FuncMessageBox(sectionList)
+  ;FuncMessageBox(sectionList)
   Loop, Parse, sectionList, `n
   {
     If(A_Loopfield == "Settings")
       Continue
-    If(A_LoopField != "HK2")
+    If(A_LoopField != "HS2")
       Continue
     ; Read the values for the current section
     IniRead, HSShort, %settingsFileName%, %A_LoopField%, Short
     IniRead, HSLong , %settingsFileName%, %A_LoopField%, Long
-    IniRead, HSOmit, %settingsFileName%, %A_LoopField%, Omit
+    IniRead, HSOmit , %settingsFileName%, %A_LoopField%, Omit
     IniRead, HSTypes, %settingsFileName%, %A_LoopField%, Types
     ; Confirm all values are valid
-    if(HSShort != "ERROR" && HSLong != "ERROR" && HSTypes != "ERROR")
+    If(HSShort != "ERROR" && HSLong != "ERROR" && HSTypes != "ERROR")
     {
       ; Replace all tabs for line feeds in the snippet
       HSLong := StrReplace(HSLong, A_Tab, "`n")
-      ; Implement the hotstrings and create the GUI elements
-      if(HSOmit == "true")
+      ; Implement the hotstrings
+      If(HSOmit == "true")
         Hotstring(HSPreffixO HSShort, HSLong, "On")
-      else if(HSOmit == "false")
+      Else If(HSOmit == "false")
         Hotstring(HSPreffix HSShort, HSLong, "On")
+      
+      ; Create the GUI elements for the current hotstring
+      ;Global labelShort
+      labelShort := A_LoopField "Short"
+      Gui GUIOpt:Add, Edit,	y+m w120 h21 v%labelShort% Section, % HSShort
+
+      ;Global labelLong
+      labelLong  := A_LoopField "Long"
+      Gui GUIOpt:Add, Edit,	x+m w120 h21 v%labelLong%         , % HSLong
+      
       ; Read all file types valid for the current hotstring
       Loop, Parse, HSTypes, %A_Tab%
       {
@@ -100,7 +119,7 @@ FuncUpdateGUI()
     }
     Break
   }
-}
+return
 
 ;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
 ;║                                              INI                                              ║;
@@ -133,6 +152,3 @@ FuncMessageBox(thisMessage)
 {
   MsgBox, % thisMessage
 }
-
-FuncLoadIni(settingsFileName)
-FuncLoadGUI()
