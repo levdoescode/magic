@@ -29,7 +29,7 @@ Global settingsIni := "
 (
 [Settings]
 Separator=	
-FileTypes=html	css	js	cpp
+FileTypes=html	css	js	cpp	h	txt	ahk
 [HS1]
 Short=mg.
 Long=M.A.G.I.C.
@@ -75,8 +75,28 @@ FuncLoadGUI()
   Gui GUIOpt:Color, 0XFFFFFF
   Gui GUIOpt:Margin, %xMargin%, %yMargin%
   Gui GUIOpt:Add, Text, x%xStart%	y%yStart% h21	Section +0x800200, % "Supported file types" ; 0x200 centers text vertically
-  Gui GUIOpt:Add, Edit, w200 vEDFileTypes	y+m	r5 hwndTypesHandle,
-  Gui GUIOpt:Add, ListView, y+m +AltSubmit vLVHotstrings gLVChange, Short|Long|Omit
+  Gui GUIOpt:Add, Edit, w200 y+m r5 vEDFileTypes hwndTypesHandle,
+  Gui GUIOpt:Add, Text, h21 +0x800200, % "Current Hotstring Short"
+  Gui GUIOpt:Add, Edit, w200 y+m r1 -VScroll vEDCurrentShort,
+  Gui GUIOpt:Add, Text, h21 +0x800200, % "Current Hotstring Long"
+  Gui GUIOpt:Add, Edit, w200 y+m r10 vEDCurrentLong,
+  ; Draw checkboxes for the suport file types
+  Gui GUIOpt:Add, Text, h21 +0x800200, % "Current Supported File Types"
+  Loop, Parse, fileTypes, %A_Tab%
+  {
+    theX := Mod(A_Index - 1, 4) * 50 ; Determine the x offset
+    If ( (Mod(A_Index, 4) ) == 1 )
+    {
+      Gui GUIOpt:Add, Checkbox, xs+%theX% h21 +0x200, % A_LoopField
+    }
+    Else
+    {
+      Gui GUIOpt:Add, Checkbox, xs+%theX% yp h21 +0x200, % A_LoopField
+    }
+  }
+  ; Draw the list of hotstrings
+  Gui GUIOpt:Add, Text, h21 ys+0 +0x800200, % "Hotstring List" ; ys draws the element on the next calculated column(y) in the section(s)
+  Gui GUIOpt:Add, ListView, w300 y+m +AltSubmit vLVHotstrings gLVChange, Short|Long|Omit
 
   ; Populate the Edit with the supported file types  
   edText := ""
@@ -92,13 +112,13 @@ FuncLoadGUI()
   }
   ;LV_ModifyCol(1, "150")
   GuiControl, Focus, LVHotstrings ; Select the ListView GUI element
+  LV_ModifyCol()
   LV_Modify(1, "+Select +Focus") ; Focus the first element in the List View
 }
 
-; Read Ini sections and create the GUI elements
+; Load hotstrings from the hotstrings list
 FuncLoadHotstrings()
 {
-  
   ;FuncMessageBox(sectionList)
   Loop, Parse, sectionList, `n
   {
@@ -134,7 +154,7 @@ FuncLoadHotstrings()
 ;║                                              INI                                              ║;
 ;╚═══════════════════════════════════════════════════════════════════════════════════════════════╝;
 
-; Create ini file or load it If present
+; Create ini file, load it if present, update hotstring list and file types variables
 FuncLoadIni(inIfile)
 {
   ; ==================================================
@@ -210,7 +230,7 @@ LVChange()
   ; Avoid multiple successful calls
   If(listRow == LV_GetNext(, "F") || LV_GetNext(, "F") == 0)
     Return
-  listRow := LV_GetNext()  
-  
+  listRow := LV_GetNext()
+
   ; Load the edit boxes with the hotstring text
 }
