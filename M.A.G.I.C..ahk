@@ -21,6 +21,8 @@ Global fileTypes := "" ; All supported file types, A_Tab delimited
 Global typesCheckboxes := [] ; The names of all checkbox GUI elements
 Global iniOK := False
 Global listRow := 0
+Global firstCheckboxX := 5
+Global firstCheckboxY := 411
 
 Global settingsFileName := "settings.ini"
 Global separator := "	" ; Tab
@@ -111,18 +113,21 @@ FuncLoadGUI()
   ;GuiControl, , CBhtml, 1
 }
 
+; Save the files types in the ini file and update the checkboxes
 FuncSaveFileTypes()
 {
   GuiControlGet, edText, , EDFileTypes
   fileTypes := ""
   Loop, Parse, edText, `n`r
   {
+    If (A_LoopField == "") ; Don't save empty lines
+      Continue
     fileTypes := fileTypes A_LoopField A_Tab
   }
   fileTypes := Trim(fileTypes, A_Tab)
   ; Write to the settings.ini file
   IniWrite, %fileTypes%, %settingsFileName%, Settings, FileTypes
-  FuncUpdateCheckboxes()
+  FuncLoadCheckboxes()
 }
 
 ; Read the filesTypes variable and update the file types edit box
@@ -130,83 +135,79 @@ FuncLoadFileTypes()
 {
   local edText := ""
   Loop, Parse, fileTypes, %A_Tab%
+  {
+    If (A_LoopField == "") ; Don't load empty types
+      Continue
     edText := edText A_LoopField "`n"
+  }
   GuiControl, Text, EDFileTypes, %edText%
 }
 
-; Save the files types in the ini file and update the checkboxes
-FuncUpdateCheckboxes()
+; Load the checkboxes with the list from the edit box
+FuncLoadCheckboxes()
 {
-  Global
+  Global ; Keyword needed to add GUI elements which require global labels
   Local typesArray := StrSplit(fileTypes, A_Tab)
-  Loop
+  Local lastIndex := 0
+
+  For typesIndex, currentType in typesArray
   {
-    Local thisCheckbox := typesCheckboxes[A_Index]
-    Local thisType := typesArray[A_Index]
-    If (thisCheckbox == "" && thisType == "") ; We reached the end of both arrays at the same time, no more types
+    if(currentType == "")
     {
-      MsgBox, % "End"
-      Break
+      Continue ; The user entered an empty line
     }
     
-    Local lastIndex := A_Index ; Save for the next loop
-    
-    If (thisCheckbox == "") ; We reached the end of the checkbox GUI element name array, let check if we have more file types
+    Local checkboxName := % typesCheckboxes[typesIndex] ; build the name of the checkbox
+    ; check if there is a corresponding checkbox in its name array
+    if( checkboxName != "")
     {
-      Loop, ; Loop through the rest of types array
-      {
-        Local nextType := typesArray[lastIndex + A_Index - 1]
-        If (nextType == "")
-          Break
-        Local newCheckbox := % "CB" nextType
-        MsgBox, % newCheckbox
-        
-        Gui GUIOpt:Add, Checkbox, x5 y5 h21 +0x200 v%newCheckbox%, % typesArray[lastIndex + A_Index - 1]
-        typesCheckboxes.Push(newCheckbox)
-        If (ErrorLevel == 1)
-          Break
-      }
-      ; There are more file types, we'll add new checkbox GUi elements
-      ;Gui GUIOpt:Add, Checkbox, xs+%theX% yp h21 +0x200 v%labelCheckbox%, % A_LoopField
-      ;typesCheckboxes.Push(labelCheckbox)
+      ; Make sure the checkbox is not hidden
+      GuiControl, Text, % checkboxName, % typesArray[typesIndex] ; Set the appropriate text for the checkbox
     }
-    
-    
-    Continue
-    ;GuiControlGet, checkboxText, , % typesCheckboxes[A_Index], Text ; Get the checkbox's text
-    GuiControl, Text, % typesCheckboxes[A_Index], % typesArray[A_Index]
-    ;lastIndex := % A_Index
-    MsgBox, % lastIndex
-    If (ErrorLevel == 1) ; We reach the end of the current list of file types
+    Else ; We need to add new checkboxes in its name array
     {
-      ; Let's check if there are more checkbox GUI elements
-      Loop,
-      {
-        ;typesArray[A_Index]
-        GuiControlGet, checkboxText, , % typesCheckboxes[lastIndex], Text ; Try to get text from the next
-        If (ErrorLevel == 1) ; There are no more checkboxes
-        {
-          Break
-        }
-        lastIndex++
-      }
-      Break
+      checkboxName := % "CB" typesCheckboxes.Count() + 1 ; build the name of the checkbox
+      typesCheckboxes.Push(checkboxName)
+      Gui GUIOpt:Add, Checkbox, x-100 y-100 h21 w50 +0x100 v%checkboxName%, % currentType
     }
+    lastIndex := typesIndex
+
+    ; Place the checkboxes properly
+    Local theX := firstCheckboxX + Mod(typesIndex - 1, 4) * 50 ; Determine the x offset
+    Local theY := firstCheckboxY + Floor((typesIndex - 1)/4) * 26
+    
+    GuiControl, Move, %checkboxName%,  x%theX% y%theY%
+    GuiControl, Show, %checkboxName% ; Show the checkbox
+  }
+
+  ; Hide the checkboxes that won't be used
+  Local loopCount := % typesCheckboxes.Count() - typesArray.Count()  
+  Loop, % loopCount
+  {
+    Local nextBox := typesCheckboxes[lastIndex + A_Index]
+    GuiControl, Hide, %nextBox%
   }
 }
 
-FuncLoadCheckboxes()
+FuncLoadCheckboxes2()
 {
   Global
   Loop, Parse, fileTypes, %A_Tab%
   {
-    theX := Mod(A_Index - 1, 4) * 50 ; Determine the x offset
-    labelCheckbox := "CB" A_LoopField
+    Local theX := Mod(A_Index - 1, 4) * 50 ; Determine the x offset
+    Local labelCheckbox := "CB" A_Index
+    
     If ( (Mod(A_Index, 4) ) == 1 )
-      Gui GUIOpt:Add, Checkbox, xs+%theX%    h21 +0x200 v%labelCheckbox%, % A_LoopField
+      Gui GUIOpt:Add, Checkbox, xs+%theX%    h21 w50 +0x100 v%labelCheckbox%, % A_LoopField
     Else
-      Gui GUIOpt:Add, Checkbox, xs+%theX% yp h21 +0x200 v%labelCheckbox%, % A_LoopField
+      Gui GUIOpt:Add, Checkbox, xs+%theX% yp h21 w50 +0x100 v%labelCheckbox%, % A_LoopField
     typesCheckboxes.Push(labelCheckbox)
+    If(A_Index == 1)
+    {
+      ;firstCheckboxX =: 0
+      ;firstCheckboxY =: 0
+      ;GuiControlGet, firstCheckbox, Pos, %labelCheckbox% ; Save the position to global variables firstCheckboxX and firstCheckboxY
+    }
   }
 }
 
@@ -289,7 +290,6 @@ FuncLoadIni(inIfile)
   ; If config file doesn't exist, create it with default settings
   If (!FileExist(inIfile))
   {
-    
     FileAppend, % settingsIni, %inIfile%
     If (ErrorLevel == 1)
     {
