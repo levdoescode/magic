@@ -19,10 +19,14 @@ Global WINTITLE := A_Tab "✨" name "✨ " VERSION
 Global hotstringList := [] ; Saved hotstrings will be loaded here
 Global fileTypes := "" ; All supported file types, A_Tab delimited
 Global typesCheckboxes := [] ; The names of all checkbox GUI elements
+Global yesText := "⬤"
+Global noText := "◯"
 Global iniOK := False
 Global listRow := 0
 Global firstCheckboxX := 5
 Global firstCheckboxY := 411
+Global newHotstringstate := 0
+Global firstLoad := true
 
 Global settingsFileName := "settings.ini"
 Global separator := "	" ; Tab
@@ -60,9 +64,8 @@ FuncLoadGUI()
 ; GuiControl, Focus, EDFileTypes ; Set focus so text is not highlighted
 ; SendMessage, 0xB1, -2, -1, , ahk_id %TypesHandle% ; Send the cursor to the end of the edit box
 
-Gui GUIOpt:Show, W640 H485
+Gui GUIOpt:Show, W840 H509
 
-;LVChange()
 Return
 ;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
 ;║                                              GUI                                              ║;
@@ -81,21 +84,23 @@ FuncLoadGUI()
   Gui GUIOpt:Add, Text, x%xStart%	y%yStart% h21	Section +0x200, % "Supported file types" ; 0x200 centers text vertically
   Gui GUIOpt:Add, Edit, w200 y+m r5 vEDFileTypes hwndTypesHandle,
   Gui GUIOpt:Add, Text, 		xp+0		y+20	w200		h1 	+0x10
-  Gui GUIOpt:Add, Text, h21 +0x200, % "Hotstring Short"
+  Gui GUIOpt:Add, Text, h21 +0x200, % "Hotstring Short Text"
   Gui GUIOpt:Add, Edit, w200 y+m r1 -VScroll vEDCurrentShort,
-  Gui GUIOpt:Add, Text, h21 +0x200, % "Hotstring Long"
+  Gui GUIOpt:Add, Text, h21 +0x200, % "Hotstring Expanded Text"
   Gui GUIOpt:Add, Edit, w200 y+m r10 vEDCurrentLong,
   Gui GUIOpt:Add, CheckBox, h21 +0x200 vCheckOmit, % "Omit trailing character"
+  Gui GUIOpt:Add, StatusBar, , % "Delete the settings.ini file if you run into issues"
   ; Draw checkboxes for the suport file types
   Gui GUIOpt:Add, Text, h21 +0x200, % "Hotstring File Types"
   FuncLoadCheckboxes()
 
   ; Draw the list of hotstrings
   Gui GUIOpt:Add, Text, h21 ys+0 +0x200, % "Hotstring List" ; ys draws the element on the next calculated column(y) in the section(s)
-  Gui GUIOpt:Add, ListView, w425 r20 y+m +AltSubmit vLVHotstrings gFuncHotstringGUI, Short|Long|Omit
+  Gui GUIOpt:Add, ListView, w625 r23 y+m +AltSubmit vLVHotstrings gFuncHotstringGUI, Short|Long|Omit
   ; File types save button
-  Gui GUIOpt:Add, Button, w85 gFuncSaveFileTypes, % "Save File Types"
-  Gui GUIOpt:Add, Button, w85 gFuncLoadListView, % "Test"
+  
+  Gui GUIOpt:Add, Button, y+m w95 vNewHotstring gFuncSaveHotstring, % "New Hotstring"
+  Gui GUIOpt:Add, Button, x+m w85 gFuncSaveFileTypes, % "Save File Types"
 
   ; ----- Populate GUI elements ---
   ; Populate the Edit with the supported file types  
@@ -115,6 +120,47 @@ FuncLoadGUI()
   ; Load the hotstring info into the edit boxes
   GuiControl, Focus, LVHotstrings ; Select the ListView GUI element
   LV_Modify(1, "+Select +Focus") ; Focus the first element in the List View
+}
+
+; Save or update the hotstring
+FuncSaveHotstring()
+{
+  If (newHotstringstate == 0)
+  {
+    ; Unselect the list view
+    currentRow := LV_GetNext()
+    LV_Modify(0, "+Select +Focus")
+    LV_Modify(0, "-Select -Focus")
+    GuiControl, , NewHotstring, % "Save Hotstring" ; Change the text in the button
+    ; Clear edit boxes and checkboxes
+    GuiControl, , EDCurrentShort, % ""
+    GuiControl, , EDCurrentLong, % ""
+    ; Clear the checkboxes
+    GuiControl, , CheckOmit, % 0
+    For typesIndex, currentCheckbox in typesCheckboxes
+      GuiControl, , %currentCheckbox%, % 0
+    GuiControl, Focus, EDCurrentShort
+    newHotstringstate := 1
+    SB_SetText("Enter short and expanded texts - No file types checkboxes result in a global Hotstring - The omit checkbox will delete the Space or Enter key that triggered the hotstring")
+  }
+  Else If (newHotstringstate == 1)
+  {
+    GuiControlGet, edShort, , EDCurrentShort
+    GuiControlGet, edLong , , EDCurrentLong
+    If (Trim(edShort) == "" || Trim(edLong) == "")
+    {
+      SB_SetText("Can't save an empty Hotstring - Enter the short and expanded text")
+    }
+    Else
+    {
+      ; Save the new hotstringList
+
+      ; Reset the button, edit boxes and checkboxes
+      GuiControl, , NewHotstring, % "New Hotstring" ; Change the text in the button
+      GuiControl, Focus, EDCurrentShort
+      newHotstringstate := 0
+    }
+  }
 }
 
 ; Save the files types in the ini file and update the checkboxes
@@ -153,8 +199,8 @@ FuncLoadFileTypes()
 FuncLoadListView()
 {
   ; Check there is at least 1 row in the List View
-  LV_GetText(test1, 1, 1)
-  If( test1 == "" )
+  LV_GetText(testRow, 1, 1)
+  If( testRow == "" )
     Return
   ; Get the list of currently supported file types
   typesArray := StrSplit(fileTypes, ",")
@@ -175,19 +221,19 @@ FuncLoadListView()
   {
     LV_DeleteCol(LV_GetCount("Column"))
   }
-
+  
   ; Populate the columns with the supported file types
   For hotIndex, currentHot in hotstringList ; Loop through the hotstring list
   {
     For typesIndex, currentType in typesArray ; Loop through the supported files array
     {
       colNum := "Col" 3+typesIndex
-      LV_Modify(hotIndex, colNum, "No") ; Default value
+      LV_Modify(hotIndex, colNum, noText) ; Default value
       Loop, Parse, % currentHot.Types, % "," ; Loop through the supported files in the current hotstring
       {
         If ( currentType == Trim(A_LoopField) )
         {
-          LV_Modify(hotIndex, colNum, "Yes")
+          LV_Modify(hotIndex, colNum, yesText)
           Break
         }
       }
@@ -246,10 +292,16 @@ FuncLoadCheckboxes()
 ; Populate the GUI elements with the data from the selected hotstring on the List View
 FuncHotstringGUI()
 {
+  ; Check and restore the save hotstring button
+  If (LV_GetNext() != 0 && newHotstringstate == 1)
+  {
+    GuiControl, , NewHotstring, % "New Hotstring" ; Change the text in the button
+    newHotstringstate := 0
+  }
   ; Avoid multiple successful calls
   If(listRow == LV_GetNext(, "F") || LV_GetNext(, "F") == 0)
     Return
-
+  
   ; Check if the hoststring list is empty
   if(LV_GetCount() == 0)
     Return
@@ -262,12 +314,16 @@ FuncHotstringGUI()
     {
       LV_GetText(edText, currentRow, 1)
       GuiControl, , EDCurrentShort, % edText
+      if(currentRow == 0)
+        GuiControl, , EDCurrentShort, % ""
       Continue
     }
     If (A_Index == 2) ; Hotstring long
     {
       LV_GetText(edText, currentRow, 2)
       GuiControl, , EDCurrentLong, % edText
+      if(currentRow == 0)
+        GuiControl, , EDCurrentLong, % ""
       Continue
     }
     If (A_Index == 3) ; Hotstring omit
@@ -275,49 +331,18 @@ FuncHotstringGUI()
       LV_GetText(edText, currentRow, 3)
       edText := edText == "Yes" ? 1 : 0 ; Translate Yes/No to 1/0
       GuiControl, , CheckOmit, % edText
+      if(currentRow == 0)
+        GuiControl, , CheckOmit, % 0
       Continue
     }
     
     ; Populate the typesCheckboxes
-    
     LV_GetText(edText, currentRow, A_Index) ; Get the text in the column
-    edText := edText == "Yes" ? 1 : 0 ; Translate Yes/No to 1/0
+    edText := edText == yesText ? 1 : 0 ; Translate Yes/No to 1/0
     checkboxName := % typesCheckboxes[A_Index - 3] ; build the name of the checkbox
     GuiControl, , %checkboxName%, % edText
-  }
-}
-
-; Might not be needed later
-; Load hotstrings from the hotstrings list
-FuncLoadHotstrings()
-{
-  ;FuncMessageBox(sectionList)
-  Loop, Parse, sectionList, `n
-  {
-    If(A_Loopfield == "Settings")
-      Continue
-    If(A_LoopField != "HS2")
-      Continue
-
-    ; Implement the hotstrings
-    If(HSOmit == "true")
-      Hotstring(HSPreffixO HSShort, HSLong, "On")
-    Else If(HSOmit == "false")
-      Hotstring(HSPreffix HSShort, HSLong, "On")
-
-    ; Create the GUI elements for the current hotstring
-    labelShort := A_LoopField "Short"
-    Gui GUIOpt:Add, Edit,	y+m w120 h21 v%labelShort% Section, % HSShort
-
-    ;Global labelLong
-    labelLong := A_LoopField "Long"
-    Gui GUIOpt:Add, Edit,	x+m w120 h21 v%labelLong% , % HSLong
-
-    ; Read all file types valid for the current hotstring
-    Loop, Parse, HSTypes, %A_Tab%
-    {
-      ;FuncMessageBox(A_LoopField)
-    }
+    if(currentRow == 0)
+      GuiControl, , %checkboxName%, % edText
   }
 }
 
@@ -364,7 +389,7 @@ FuncLoadIni(inIfile)
       }
       Continue
     }
-
+    
     ; All sections after Settings will contain a hotstring
     ; Read the values for the current section
     IniRead, HSShort, %settingsFileName%, %A_LoopField%, Short
@@ -393,15 +418,4 @@ FuncLoadIni(inIfile)
 FuncMessageBox(thisMessage)
 {
   MsgBox, % thisMessage
-}
-
-; Load the hotstring into the 
-LVChange()
-{
-  ; Avoid multiple successful calls
-  If(listRow == LV_GetNext(, "F") || LV_GetNext(, "F") == 0)
-    Return
-  listRow := LV_GetNext()
-
-  ; Load the edit boxes with the hotstring text
 }
