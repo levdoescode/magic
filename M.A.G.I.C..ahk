@@ -13,7 +13,7 @@ SetTitleMatchMode, 2
 ;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
 ;║                                           Variables                                           ║;
 ;╚═══════════════════════════════════════════════════════════════════════════════════════════════╝;
-VERSION := 0.7
+VERSION := 0.8
 file := A_ScriptName
 name := SubStr(file, 1, InStr(file, ".", , 0) - 1)
 Global WINTITLE := A_Tab "✨" name "✨ " VERSION
@@ -108,9 +108,15 @@ FuncLoadGUI()
   Gui GUIOpt:Add, Button, x+m w85 vBTDeleteHotstring gFuncDeleteHotstring +0x8000000, % "Delete Hotstring"
   Gui GUIOpt:Add, Button, x+m w85 gFuncMinimize, % "Minimize"
   Gui GUIOpt:Add, Button, x+m w85 gFuncExit, % "Exit"
-  Gui GUIOpt:Add, Button, x+m gFuncFeedback, % "CLICK TO SHARE YOUR FEEDBACK, PLEASE :)"
+  Gui GUIOpt:Add, Button, x+m gFuncFeedback, % "SHARE YOUR FEEDBACK, PLEASE :)"
+  Gui GUIOpt:Add, Button, x+m gFuncDiscord, % "Discord"
   Gui GUIOpt:Add, Button, x125 y5 w80 gFuncSaveFileTypes, % "Save Types"
   Gui GUIOpt:Add, Button, x125 y133 w80 gFuncUpdateHotstring vBTUpdate +0x8000000, % "Update"
+  
+  ; Tray menu
+  Menu, Tray, Click, 1
+  Menu, Tray, Add, Settings, FuncShowGUI
+  Menu, Tray, Default, Settings
   
 
   ; ----- Populate GUI elements ---
@@ -722,5 +728,15 @@ FuncExit()
 
 FuncFeedback()
 {
-  Run, http://www.google.com/
+  Run, https://forms.gle/YLnG9mryxYpMGd8p8
+}
+
+FuncDiscord()
+{
+  Run, https://discord.gg/BUgJtBXyJ4
+}
+
+FuncShowGUI()
+{
+  Gui GUIOpt:Show, W840 H509
 }
