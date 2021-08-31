@@ -39,11 +39,11 @@ Global settingsIni := "
 (
 [Settings]
 Separator=	
-FileTypes=html,css,js,cpp,h,txt,ahk,ini
+FileTypes=html,css,js,cpp,h
 [HS1]
 Short=mg.
 Long=M.A.G.I.C.
-Omit=Yes
+Omit=No
 Types=
 [HS2]
 Short=sy.
@@ -59,7 +59,7 @@ Types=js
 Short=for.
 Long=for(int i=0; i< ; i++){■■■}
 Omit=Yes
-Types=cpp,ini
+Types=cpp
 )"
 
 ;╔═══════════════════════════════════════════════════════════════════════════════════════════════╗;
@@ -87,22 +87,22 @@ FuncLoadGUI()
   Gui GUIOpt:New, -DPIScale, % WINTITLE
   Gui GUIOpt:Color, 0XFFFFFF
   Gui GUIOpt:Margin, %xMargin%, %yMargin%
-  Gui GUIOpt:Add, Text, x%xStart%	y%yStart% h21	Section +0x200, % "File types" ; 0x200 centers text vertically
+  Gui GUIOpt:Add, Text, x%xStart%	y%yStart% h21	Section +0x200, % "List of all file types" ; 0x200 centers text vertically
   Gui GUIOpt:Add, Edit, w200 y+m r5 vEDFileTypes hwndTypesHandle,
   Gui GUIOpt:Add, Text, 		xp+0		y+20	w200		h1 	+0x10
-  Gui GUIOpt:Add, Text, h21 +0x200, % "Hotstring Short Text"
+  Gui GUIOpt:Add, Text, h21 +0x200, % "This text (Short)"
   Gui GUIOpt:Add, Edit, w200 y+m r1 -VScroll gFuncEditShort vEDCurrentShort,
-  Gui GUIOpt:Add, Text, h21 +0x200, % "Hotstring Expanded Text"
+  Gui GUIOpt:Add, Text, h21 +0x200, % "Will be replaced by this (Expanded)"
   Gui GUIOpt:Add, Edit, w200 y+m r10 gFuncEditLong vEDCurrentLong,
   Gui GUIOpt:Add, CheckBox, h21 +0x200 vCBOmit, % "Omit trigger character"
-  Gui GUIOpt:Add, StatusBar, , % "Delete the settings.ini file if you run into issues"
+  Gui GUIOpt:Add, StatusBar, , % "If you run into issues, delete the settings.ini file."
   ; Draw checkboxes for the suport file types
-  Gui GUIOpt:Add, Text, h21 +0x200, % "Hotstring File Types"
+  Gui GUIOpt:Add, Text, h21 +0x200, % "When these files types are opened"
   FuncLoadCheckboxes()
 
   ; Draw the list of hotstrings
   Gui GUIOpt:Add, Text, h21 ys+0 +0x200, % "Hotstring List" ; ys draws the element on the next calculated column(y) in the section(s)
-  Gui GUIOpt:Add, ListView, w625 r23 y+m +AltSubmit vLVHotstrings gFuncHotstringToGUI, Short|Extended|Omit
+  Gui GUIOpt:Add, ListView, w625 r23 y+m +AltSubmit vLVHotstrings gFuncHotstringToGUI, Short|Expanded|Omit
   ; File types save button
   Gui GUIOpt:Add, Button, y+m w95 vBTNewHotstring gFuncSaveHotstring, % "New Hotstring"
   Gui GUIOpt:Add, Button, x+m w85 vBTDeleteHotstring gFuncDeleteHotstring +0x8000000, % "Delete Hotstring"
@@ -156,6 +156,11 @@ FuncUpdateHotstring()
     If (hotShort == edShort && hotLong == edLong && hotOmit == edOmit && hotTypes == edTypes)
     {
       SB_SetText("The Short and Long are the same. No changes have been saved!")
+      Return
+    }
+    If (edLong == "")
+    {
+      SB_SetText("The Extended text cannot be empty!")
       Return
     }
     FuncDisableHotstring(hotShort, hotOmit, hotTypes)
