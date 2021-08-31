@@ -108,6 +108,7 @@ FuncLoadGUI()
   Gui GUIOpt:Add, Button, x+m w85 vBTDeleteHotstring gFuncDeleteHotstring +0x8000000, % "Delete Hotstring"
   Gui GUIOpt:Add, Button, x+m w85 gFuncMinimize, % "Minimize"
   Gui GUIOpt:Add, Button, x+m w85 gFuncExit, % "Exit"
+  Gui GUIOpt:Add, Button, x+m gFuncFeedback, % "CLICK TO SHARE YOUR FEEDBACK, PLEASE :)"
   Gui GUIOpt:Add, Button, x125 y5 w80 gFuncSaveFileTypes, % "Save Types"
   Gui GUIOpt:Add, Button, x125 y133 w80 gFuncUpdateHotstring vBTUpdate +0x8000000, % "Update"
   
@@ -717,4 +718,9 @@ FuncMinimize()
 FuncExit()
 {
   ExitApp
+}
+
+FuncFeedback()
+{
+  Run, http://www.google.com/
 }
